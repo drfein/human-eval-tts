@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import './App.css';
 
 function App() {
@@ -72,7 +72,7 @@ function App() {
       .then(response => response.text())
       .then(csv => {
         const rows = parseCSV(csv);
-        const headers = rows[0];
+        // Skip the header row
         const parsedPrompts = rows.slice(1)
           .map(values => {
             if (values.length >= 5) {
@@ -96,22 +96,7 @@ function App() {
       });
   }, []);
 
-  useEffect(() => {
-    const handleKeyPress = (event) => {
-      if (event.key === 'Enter' && selectedResponse) {
-        handleSubmitAnswer();
-      }
-    };
-
-    window.addEventListener('keypress', handleKeyPress);
-    return () => window.removeEventListener('keypress', handleKeyPress);
-  }, [selectedResponse]);
-
-  const handleResponseSelect = (response) => {
-    setSelectedResponse(response);
-  };
-
-  const handleSubmitAnswer = () => {
+  const handleSubmitAnswer = useCallback(() => {
     if (!selectedResponse || answeredPrompts.has(currentIndex)) return;
 
     const newAnsweredPrompts = new Set(answeredPrompts);
@@ -128,6 +113,21 @@ function App() {
       setCurrentIndex(prev => prev + 1);
       setSelectedResponse(null);
     }
+  }, [selectedResponse, answeredPrompts, currentIndex, prompts]);
+
+  useEffect(() => {
+    const handleKeyPress = (event) => {
+      if (event.key === 'Enter' && selectedResponse) {
+        handleSubmitAnswer();
+      }
+    };
+
+    window.addEventListener('keypress', handleKeyPress);
+    return () => window.removeEventListener('keypress', handleKeyPress);
+  }, [selectedResponse, handleSubmitAnswer]);
+
+  const handleResponseSelect = (response) => {
+    setSelectedResponse(response);
   };
 
   if (prompts.length === 0) return <div>Loading...</div>;
